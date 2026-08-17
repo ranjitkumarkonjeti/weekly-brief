@@ -81,6 +81,12 @@ LINK_TIMEOUT = 5          # rule: 5-second timeout on every link check
 SEARCH_TIMEOUT = 15
 MODEL_TIMEOUT = 90
 
+# Google's models sometimes come back "busy" for a few minutes at a time. Wait
+# and retry rather than losing the week, then fall back to the next-best model.
+TRANSIENT_STATUSES = (429, 500, 502, 503, 504)
+RETRY_DELAYS = (5, 20, 45)   # seconds to wait before each retry
+MODEL_FALLBACKS = 3          # how many models to keep as backups
+
 # A normal-looking browser user agent. Without one, a fair number of sites
 # return 403 to link checkers and we'd throw away perfectly good stories.
 USER_AGENT = (
@@ -346,15 +352,18 @@ def _score_model(model_id: str) -> Optional[Tuple[Any, ...]]:
     return (1 if is_stable else 0, version, tier, undated)
 
 
-def pick_model(session: requests.Session, api_key: str) -> str:
+def rank_models(session: requests.Session, api_key: str) -> List[str]:
     """
-    Ask Google which models exist right now and choose the best one for this
-    job. Set GEMINI_MODEL in .env to override.
+    Ask Google which models exist right now and rank them for this job, best
+    first. We keep a few, not just one: popular models sometimes run hot and
+    return "try again later", and a second choice beats no briefing.
+
+    Set GEMINI_MODEL in .env to override.
     """
     override = os.environ.get("GEMINI_MODEL", "").strip()
     if override:
         log("using the model from .env: {0}".format(override))
-        return override
+        return [override]
 
     try:
         response = session.get(
@@ -392,7 +401,7 @@ def pick_model(session: requests.Session, api_key: str) -> str:
             response.text[:300],
         )
 
-    best_id, best_score = None, None
+    scored = []
     for model in models:
         model_id = str(model.get("name", "")).replace("models/", "")
         methods = model.get("supportedGenerationMethods") or model.get(
@@ -403,10 +412,9 @@ def pick_model(session: requests.Session, api_key: str) -> str:
         score = _score_model(model_id)
         if score is None:
             continue
-        if best_score is None or score > best_score:
-            best_id, best_score = model_id, score
+        scored.append((score, model_id))
 
-    if not best_id:
+    if not scored:
         raise BriefError(
             "Google's model list came back, but none of the models on it can "
             "write text summaries. Set GEMINI_MODEL in your .env file to pick "
@@ -414,8 +422,12 @@ def pick_model(session: requests.Session, api_key: str) -> str:
             "{0} models offered".format(len(models)),
         )
 
-    log("chose the newest suitable model on Google's list: {0}".format(best_id))
-    return best_id
+    scored.sort(reverse=True)
+    ranked = [model_id for _, model_id in scored[:MODEL_FALLBACKS]]
+    log("newest suitable model on Google's list: {0}".format(ranked[0]))
+    if len(ranked) > 1:
+        log("(backups if it is busy: {0})".format(", ".join(ranked[1:])))
+    return ranked
 
 
 def build_prompt(candidates: List[Dict[str, Any]], max_items: int) -> str:
@@ -529,49 +541,37 @@ def _parse_picks(text: str, candidate_count: int) -> List[Dict[str, Any]]:
     return picks
 
 
-def summarise_with_gemini(
-    session: requests.Session,
-    api_key: str,
-    model: str,
-    candidates: List[Dict[str, Any]],
-    max_items: int,
-) -> List[Dict[str, Any]]:
-    """
-    Returns the chosen items. Crucially, the title and URL attached to each
-    pick come from OUR search results, matched by number -- never from the
-    model's own output. The model can only choose; it cannot supply a link.
-    """
-    prompt = build_prompt(candidates, max_items)
-    body = {
-        "contents": [{"role": "user", "parts": [{"text": prompt}]}],
-        "generationConfig": {
-            "temperature": 0.2,
-            "responseMimeType": "application/json",
-        },
-    }
-    url = "{0}/models/{1}:generateContent".format(GEMINI_BASE, model)
+class TransientModelError(Exception):
+    """Google is busy or briefly broken. Worth trying again."""
 
+
+def _call_model_once(
+    session: requests.Session, api_key: str, model: str, body: Dict[str, Any]
+) -> Dict[str, Any]:
+    url = "{0}/models/{1}:generateContent".format(GEMINI_BASE, model)
     try:
         response = session.post(
             url, params={"key": api_key}, json=body, timeout=MODEL_TIMEOUT
         )
+    except requests.Timeout:
+        raise TransientModelError("no response within {0}s".format(MODEL_TIMEOUT))
     except requests.RequestException as exc:
         raise BriefError(
-            "Could not reach the Google Gemini service.",
+            "Could not reach the Google Gemini service. This usually means "
+            "the internet connection dropped.",
             "{0}: {1}".format(type(exc).__name__, exc),
         )
 
     if response.status_code in (401, 403):
         raise BriefError(
-            "Google rejected the API key. Check GEMINI_API_KEY in your .env "
-            "file -- it may be wrong, expired, or not enabled for this API.",
+            "Google rejected the API key when asked to write summaries. Check "
+            "GEMINI_API_KEY in your .env file -- it may be wrong, expired, or "
+            "not enabled for this API.",
             "HTTP {0}: {1}".format(response.status_code, response.text[:300]),
         )
-    if response.status_code == 429:
-        raise BriefError(
-            "Google is rate-limiting this API key, so the summary step was "
-            "refused. Waiting a while and running again usually fixes it.",
-            response.text[:300],
+    if response.status_code in TRANSIENT_STATUSES:
+        raise TransientModelError(
+            "HTTP {0}: {1}".format(response.status_code, response.text[:200])
         )
     if response.status_code >= 400:
         raise BriefError(
@@ -582,7 +582,7 @@ def summarise_with_gemini(
         )
 
     try:
-        payload = response.json()
+        return response.json()
     except ValueError:
         raise BriefError(
             "The Google Gemini service sent back something that was not "
@@ -590,14 +590,68 @@ def summarise_with_gemini(
             response.text[:300],
         )
 
-    picks = _parse_picks(_extract_text(payload), len(candidates))
 
-    chosen = []
-    for pick in picks[:max_items]:
-        item = dict(candidates[pick["id"] - 1])
-        item["summary"] = pick["summary"]
-        chosen.append(item)
-    return chosen
+def summarise_with_gemini(
+    session: requests.Session,
+    api_key: str,
+    models: List[str],
+    candidates: List[Dict[str, Any]],
+    max_items: int,
+) -> Tuple[List[Dict[str, Any]], str]:
+    """
+    Returns (chosen_items, model_that_worked).
+
+    Crucially, the title and URL attached to each pick come from OUR search
+    results, matched by number -- never from the model's own output. The model
+    can only choose; it cannot supply a link.
+
+    Busy models are retried with a growing pause, then we fall back to the
+    next-best model, because "Google was briefly busy" is not a good enough
+    reason to lose a week.
+    """
+    prompt = build_prompt(candidates, max_items)
+    body = {
+        "contents": [{"role": "user", "parts": [{"text": prompt}]}],
+        "generationConfig": {
+            "temperature": 0.2,
+            "responseMimeType": "application/json",
+        },
+    }
+
+    last_problem = ""
+    for model_index, model in enumerate(models):
+        if model_index:
+            log("trying the next model instead: {0}".format(model))
+        for attempt, delay in enumerate(RETRY_DELAYS, start=1):
+            try:
+                payload = _call_model_once(session, api_key, model, body)
+            except TransientModelError as exc:
+                last_problem = "{0}: {1}".format(model, exc)
+                if attempt < len(RETRY_DELAYS):
+                    log(
+                        "{0} is busy, waiting {1}s and trying again "
+                        "(attempt {2} of {3})...".format(
+                            model, delay, attempt, len(RETRY_DELAYS)
+                        )
+                    )
+                    time.sleep(delay)
+                continue
+
+            picks = _parse_picks(_extract_text(payload), len(candidates))
+            chosen = []
+            for pick in picks[:max_items]:
+                item = dict(candidates[pick["id"] - 1])
+                item["summary"] = pick["summary"]
+                chosen.append(item)
+            return chosen, model
+
+    raise BriefError(
+        "Google's AI service is too busy right now. The tool waited and tried "
+        "{0} times across {1} model(s), and every attempt came back busy. "
+        "This is a problem on Google's end, not with your setup -- running the "
+        "tool again in an hour usually works.".format(len(RETRY_DELAYS), len(models)),
+        last_problem,
+    )
 
 
 def pick_without_model(
@@ -838,11 +892,11 @@ def run(dry_run: bool) -> int:
                     "GEMINI_API_KEY=your-key-here",
                     "checked .env and the environment for GEMINI_API_KEY",
                 )
-            model_used = pick_model(session, api_key)
-            chosen = summarise_with_gemini(
-                session, api_key, model_used, fresh, MAX_ITEMS
+            models = rank_models(session, api_key)
+            chosen, model_used = summarise_with_gemini(
+                session, api_key, models, fresh, MAX_ITEMS
             )
-            log("The model chose {0} item(s).".format(len(chosen)))
+            log("{0} chose {1} item(s).".format(model_used, len(chosen)))
 
         log("Step 5: checking every link ({0} to check)...".format(len(chosen)))
         alive, dead = verify_links(session, chosen)
