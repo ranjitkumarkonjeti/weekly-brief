@@ -1,0 +1,5 @@
+requests>=2.31.0
+
+# Pinned below 2.0 on purpose: macOS ships an older LibreSSL, and urllib3 v2
+# prints a scary-looking (but harmless) warning on every single run with it.
+urllib3<2

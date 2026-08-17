@@ -1,0 +1,14 @@
+# Your API key lives here. Never commit it.
+.env
+
+# Local Python bits
+.venv/
+venv/
+__pycache__/
+*.pyc
+
+# Temp file written while saving seen.json
+seen.json.tmp
+
+# macOS
+.DS_Store
