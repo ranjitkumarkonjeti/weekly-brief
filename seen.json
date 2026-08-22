@@ -1,12 +1,16 @@
 {
-  "last_successful_run": "2026-08-16",
+  "last_successful_run": "2026-08-22",
   "urls": {
     "https://anthropic.com/research/multiagent-systems": "2026-08-16",
     "https://ballet.dev/": "2026-08-16",
+    "https://blog.jakesaunders.dev/building-an-almost-fully-self-hosted-sandboxed-agentic-software-factory": "2026-08-22",
     "https://cactuscompute.com/needle": "2026-08-16",
     "https://codewithbullet.com/": "2026-08-16",
     "https://github.com/StamManif/mcp-stama": "2026-08-16",
+    "https://github.com/alibaba/anolisa/blob/main/docs/user-guide/en/agent-observability/agentsight.md": "2026-08-22",
     "https://github.com/lajosdeme/mole": "2026-08-16",
+    "https://github.com/proliferate-ai/proliferate": "2026-08-22",
+    "https://github.com/xhall-beep/ApexYX-Sovereign": "2026-08-22",
     "https://hashagent.pages.dev/": "2026-08-16",
     "https://tencent-hunyuan.github.io/Hunyuan3D-WorldClaw": "2026-08-16"
   }
