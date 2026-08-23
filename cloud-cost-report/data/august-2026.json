@@ -1,0 +1,393 @@
+{
+  "period": "August 2026",
+  "currency": "USD",
+  "invoiced_total": 148320,
+  "prior_total": 135560,
+  "categories": [
+    {
+      "name": "Compute",
+      "cost": 58940,
+      "prior": 54472
+    },
+    {
+      "name": "AI / ML",
+      "cost": 31180,
+      "prior": 23165
+    },
+    {
+      "name": "Database",
+      "cost": 24610,
+      "prior": 24911
+    },
+    {
+      "name": "Storage",
+      "cost": 17450,
+      "prior": 18064
+    },
+    {
+      "name": "Networking",
+      "cost": 11290,
+      "prior": 10098
+    },
+    {
+      "name": "Support & other",
+      "cost": 4850,
+      "prior": 4850
+    }
+  ],
+  "teams": [
+    {
+      "name": "Core API",
+      "cost": 46180,
+      "prior": 43785,
+      "top_resource": "aks-prod-eastus-nodepool3"
+    },
+    {
+      "name": "ML Platform",
+      "cost": 38940,
+      "prior": 31030,
+      "top_resource": "gke-ml-training-a100-pool"
+    },
+    {
+      "name": "Data Platform",
+      "cost": 27650,
+      "prior": 27002,
+      "top_resource": "bq-analytics-warehouse"
+    },
+    {
+      "name": "Billing & Payments",
+      "cost": 16420,
+      "prior": 16114,
+      "top_resource": "sql-mi-billing-prod"
+    },
+    {
+      "name": "Developer Experience",
+      "cost": 11780,
+      "prior": 9957,
+      "top_resource": "vm-scaleset-batch-nonprod"
+    },
+    {
+      "name": "Untagged & shared",
+      "cost": 7350,
+      "prior": 7672,
+      "top_resource": "Support, licences, unassigned"
+    }
+  ],
+  "resources": [
+    {
+      "id": "aks-prod-eastus-nodepool3",
+      "description": "Kubernetes node pool, 24 x D8s v5",
+      "cloud": "AZURE",
+      "category": "Compute",
+      "team": "Core API",
+      "cost": 19840,
+      "prior": 17651,
+      "flag": false,
+      "saving": 5550,
+      "confidence": "high",
+      "finding": "Every node in this pool bills at pay-as-you-go rates. The pool has not dropped below 20 nodes in six months, so 20 of the 24 nodes are effectively permanent capacity being rented by the hour.",
+      "current_config": {
+        "lang": "hcl",
+        "label": "terraform/aks.tf (current)",
+        "code": "resource \"azurerm_kubernetes_cluster_node_pool\" \"prod3\" {\n  name                  = \"nodepool3\"\n  vm_size               = \"Standard_D8s_v5\"\n  node_count            = 24\n  enable_auto_scaling   = true\n  min_count             = 20\n  max_count             = 32\n  priority              = \"Regular\"   # pay-as-you-go, billed hourly\n}"
+      },
+      "change": {
+        "lang": "hcl",
+        "label": "Buy a 1-year savings plan for the stable floor",
+        "code": "# No change to the node pool itself. The saving is a purchase,\n# not a redeploy - capacity keeps running while the rate changes.\n\nresource \"azurerm_billing_savings_plan\" \"compute_1yr\" {\n  scope         = \"/subscriptions/${var.subscription_id}\"\n  term          = \"P1Y\"\n  billing_plan  = \"Monthly\"\n  # cover the 20-node floor only, leave the burst on demand\n  commitment    = { amount = 11000, currency = \"USD\", grain = \"Monthly\" }\n}"
+      },
+      "maths": [
+        "20 nodes never released in 6 months = the committed floor",
+        "20 / 24 nodes x $19,840 = $16,533 of the bill is stable capacity",
+        "Azure 1-year compute savings plan on D-series = about 34% off pay-as-you-go",
+        "$16,533 x 0.34 = $5,621, rounded down to $5,550 to allow for rate drift"
+      ],
+      "risk": "A savings plan is a one-year financial commitment. If the pool is retired early the commitment still bills. Covering only the 20-node floor keeps the burst capacity flexible.",
+      "effort": "One purchase, no deployment, no downtime."
+    },
+    {
+      "id": "gke-ml-training-a100-pool",
+      "description": "GPU node pool, 8 x A100 80GB",
+      "cloud": "GCP",
+      "category": "AI / ML",
+      "team": "ML Platform",
+      "cost": 17220,
+      "prior": 10680,
+      "flag": true,
+      "saving": 8270,
+      "confidence": "high",
+      "finding": "Training jobs run on on-demand A100s, and the pool floor is 2 nodes so it never scales to zero. Job logs show 94% of runs are checkpointed every 15 minutes, which means they survive preemption and do not need on-demand capacity.",
+      "current_config": {
+        "lang": "hcl",
+        "label": "terraform/gke-ml.tf (current)",
+        "code": "resource \"google_container_node_pool\" \"ml_training\" {\n  name    = \"ml-training-a100-pool\"\n  cluster = google_container_cluster.ml.id\n\n  autoscaling {\n    min_node_count = 2      # never returns to zero\n    max_node_count = 8\n  }\n\n  node_config {\n    machine_type = \"a2-highgpu-8g\"\n    spot         = false    # on-demand rates, 24/7 availability\n    guest_accelerator {\n      type  = \"nvidia-tesla-a100\"\n      count = 8\n    }\n  }\n}"
+      },
+      "change": {
+        "lang": "hcl",
+        "label": "Spot capacity for checkpointed jobs, and a true zero floor",
+        "code": "resource \"google_container_node_pool\" \"ml_training\" {\n  name    = \"ml-training-a100-pool\"\n  cluster = google_container_cluster.ml.id\n\n  autoscaling {\n    min_node_count = 0      # idle days cost nothing\n    max_node_count = 8\n  }\n\n  node_config {\n    machine_type = \"a2-highgpu-8g\"\n    spot         = true     # about 60-70% off, can be reclaimed\n    guest_accelerator {\n      type  = \"nvidia-tesla-a100\"\n      count = 8\n    }\n    taint {\n      key    = \"cloud.google.com/gke-spot\"\n      value  = \"true\"\n      effect = \"NO_SCHEDULE\"\n    }\n  }\n}\n\n# Jobs that cannot tolerate preemption opt out by tolerating\n# the taint only when they checkpoint:\n#   tolerations:\n#     - key: cloud.google.com/gke-spot\n#       operator: Equal\n#       value: \"true\"\n#       effect: NoSchedule"
+      },
+      "maths": [
+        "Pool ran 19 of 31 days; 12 idle days still billed the 2-node floor",
+        "Floor waste: 2/8 nodes x 12/31 days x $17,220 = $1,666",
+        "Active spend on the 19 running days = $15,554",
+        "94% of runs are checkpointed and can move to spot",
+        "$15,554 x 0.94 x 0.45 average spot discount = $6,579",
+        "$1,666 + $6,579 = $8,245, rounded to $8,270 against current spot rates"
+      ],
+      "risk": "Spot nodes can be reclaimed with 30 seconds notice. Only jobs that checkpoint should tolerate the taint. The 6% of runs that do not checkpoint stay on an on-demand pool.",
+      "effort": "One Terraform apply plus a toleration added to the training job template. Roughly half a day."
+    },
+    {
+      "id": "vm-scaleset-api-prod",
+      "description": "VM scale set, autoscaled 6-20",
+      "cloud": "AZURE",
+      "category": "Compute",
+      "team": "Core API",
+      "cost": 13405,
+      "prior": 12877,
+      "flag": false,
+      "saving": 1880,
+      "confidence": "medium",
+      "finding": "The scale set is correctly autoscaling and is not oversized. The only saving here is rate, not shape: the 6-instance floor has never been breached downward in a year.",
+      "current_config": {
+        "lang": "hcl",
+        "label": "terraform/api-vmss.tf (current)",
+        "code": "resource \"azurerm_linux_virtual_machine_scale_set\" \"api\" {\n  name       = \"vm-scaleset-api-prod\"\n  sku        = \"Standard_D4s_v5\"\n  instances  = 6\n  priority   = \"Regular\"\n}\n\nresource \"azurerm_monitor_autoscale_setting\" \"api\" {\n  profile {\n    capacity { minimum = 6, maximum = 20, default = 6 }\n  }\n}"
+      },
+      "change": {
+        "lang": "hcl",
+        "label": "Reserve the floor only",
+        "code": "# Extend the existing savings plan to cover the 6-instance floor.\n# No change to the scale set or the autoscale rules.\n\n#   6 x Standard_D4s_v5, 1-year term, region eastus\n#   Leaves instances 7-20 on pay-as-you-go so bursts stay elastic."
+      },
+      "maths": [
+        "6 of an average 11 running instances are permanent = 55% of the bill",
+        "$13,405 x 0.55 = $7,373 of stable capacity",
+        "1-year savings plan on D4s v5 = about 26% off",
+        "$7,373 x 0.26 = $1,917, rounded down to $1,880"
+      ],
+      "risk": "Same one-year commitment risk as the AKS pool. Low, because the API tier is not scheduled for replacement.",
+      "effort": "Purchase only. No deployment."
+    },
+    {
+      "id": "sql-mi-billing-prod",
+      "description": "SQL managed instance, business critical",
+      "cloud": "AZURE",
+      "category": "Database",
+      "team": "Billing & Payments",
+      "cost": 11960,
+      "prior": 11749,
+      "flag": false,
+      "saving": 3110,
+      "confidence": "high",
+      "finding": "The tier is correct - billing genuinely needs the availability guarantees of Business Critical. But the instance runs at pay-as-you-go rates and has been unchanged for two years, and Azure Hybrid Benefit is not applied despite the licences being owned.",
+      "current_config": {
+        "lang": "hcl",
+        "label": "terraform/sql-mi.tf (current)",
+        "code": "resource \"azurerm_mssql_managed_instance\" \"billing\" {\n  name             = \"sql-mi-billing-prod\"\n  sku_name         = \"BC_Gen5\"\n  vcores           = 16\n  storage_size_in_gb = 2048\n  license_type     = \"LicenseIncluded\"   # paying for SQL licences twice\n}"
+      },
+      "change": {
+        "lang": "hcl",
+        "label": "Apply owned licences, then reserve the capacity",
+        "code": "resource \"azurerm_mssql_managed_instance\" \"billing\" {\n  name             = \"sql-mi-billing-prod\"\n  sku_name         = \"BC_Gen5\"\n  vcores           = 16\n  storage_size_in_gb = 2048\n  license_type     = \"BasePrice\"   # Azure Hybrid Benefit - use owned licences\n}\n\n# Then a 1-year reserved capacity purchase for 16 vCores, BC_Gen5, eastus."
+      },
+      "maths": [
+        "Azure Hybrid Benefit on Business Critical = about 18% off the vCore rate",
+        "$11,960 x 0.18 = $2,153",
+        "1-year reserved capacity on the remaining compute = about 11% further",
+        "($11,960 - $2,153) x 0.11 = $1,079",
+        "$2,153 + $1,079 = $3,232, rounded down to $3,110 for storage that cannot be reserved"
+      ],
+      "risk": "Hybrid Benefit requires the licences to have Software Assurance. Finance has confirmed 24 core licences are held and unused. Changing license_type is a metadata update with no restart.",
+      "effort": "One Terraform apply and one purchase. No downtime."
+    },
+    {
+      "id": "bq-analytics-warehouse",
+      "description": "BigQuery, on-demand query pricing",
+      "cloud": "GCP",
+      "category": "Database",
+      "team": "Data Platform",
+      "cost": 7340,
+      "prior": 7064,
+      "flag": false,
+      "saving": 2190,
+      "confidence": "high",
+      "finding": "Queries are billed per terabyte scanned. Volume has sat between 1,150 and 1,220 TiB for four consecutive months, which is stable enough to commit to slots instead. Two scheduled queries also scan full tables where a partition filter would do.",
+      "current_config": {
+        "lang": "sql",
+        "label": "The pattern driving the scans",
+        "code": "-- Scheduled daily, scans the full events table every run\nSELECT user_id, event_type, COUNT(*) AS n\nFROM `analytics.events`\nWHERE event_type IN ('signup','purchase')\nGROUP BY 1, 2;\n\n-- events is 41 TB, partitioned on event_date, but the query\n-- has no partition filter, so every run scans all of it."
+      },
+      "change": {
+        "lang": "sql",
+        "label": "Filter the partition, then commit to slots",
+        "code": "-- 1. Add the partition filter (daily job only needs one day)\nSELECT user_id, event_type, COUNT(*) AS n\nFROM `analytics.events`\nWHERE event_date = CURRENT_DATE() - 1\n  AND event_type IN ('signup','purchase')\nGROUP BY 1, 2;\n\n-- 2. Enforce it so this cannot regress\nALTER TABLE `analytics.events`\nSET OPTIONS (require_partition_filter = TRUE);\n\n-- 3. Then buy a baseline slot commitment for the steady volume:\n--    bq mk --capacity_commitment --plan=ANNUAL --slots=500"
+      },
+      "maths": [
+        "Two scheduled queries scan 41 TB daily where 0.4 TB would do",
+        "Wasted scan: 2 x 40.6 TB x 31 days = 2,517 TB, at $6.25/TiB = $735 (already reflected below)",
+        "Remaining steady volume after the fix = about 1,060 TiB",
+        "On-demand: 1,060 x $6.25 = $6,625",
+        "500 annual slots = $5,170/month flat, and covers the measured peak",
+        "$735 partition saving + $1,455 slot saving = $2,190"
+      ],
+      "risk": "Slot commitments cap concurrency. Peak slot usage measured over 90 days was 430, so 500 leaves headroom. require_partition_filter will break any query that omits the filter, which is the point, but it needs an announcement first.",
+      "effort": "Two query edits, one table option, one purchase. About two hours plus a notice period."
+    },
+    {
+      "id": "st-datalake-raw-prod",
+      "description": "Data Lake Gen2, hot tier, 412 TB",
+      "cloud": "AZURE",
+      "category": "Storage",
+      "team": "Data Platform",
+      "cost": 6880,
+      "prior": 7257,
+      "flag": false,
+      "saving": 2410,
+      "confidence": "high",
+      "finding": "All 412 TB sits in the hot tier. Access logs show 78% of the data has not been read in 90 days, and no lifecycle policy exists to move it down.",
+      "current_config": {
+        "lang": "json",
+        "label": "Lifecycle management policy (current)",
+        "code": "{\n  \"rules\": []\n}\n\n// No rules. Everything written to this account stays\n// in the hot tier indefinitely."
+      },
+      "change": {
+        "lang": "json",
+        "label": "Tier down on age, delete on retention limit",
+        "code": "{\n  \"rules\": [\n    {\n      \"name\": \"raw-tier-down\",\n      \"enabled\": true,\n      \"type\": \"Lifecycle\",\n      \"definition\": {\n        \"filters\": {\n          \"blobTypes\": [\"blockBlob\"],\n          \"prefixMatch\": [\"raw/\"]\n        },\n        \"actions\": {\n          \"baseBlob\": {\n            \"tierToCool\":    { \"daysAfterModificationGreaterThan\": 30 },\n            \"tierToArchive\": { \"daysAfterModificationGreaterThan\": 180 },\n            \"delete\":        { \"daysAfterModificationGreaterThan\": 2555 }\n          }\n        }\n      }\n    }\n  ]\n}"
+      },
+      "maths": [
+        "412 TB total, 321 TB untouched for 90+ days",
+        "Hot tier: $0.0184/GB/month. Cool: $0.0100. Archive: $0.0020",
+        "Move 180 TB to cool: 184,320 GB x ($0.0184 - $0.0100) = $1,548",
+        "Move 141 TB to archive: 144,384 GB x ($0.0184 - $0.0020) = $2,368",
+        "Less rehydration allowance for occasional archive reads: -$1,506",
+        "Net $2,410"
+      ],
+      "risk": "Archive tier reads take hours to rehydrate and cost per GB. Only data past 180 days goes there, and the analytics team has confirmed nothing older than 90 days is read interactively.",
+      "effort": "One policy document. Tiering happens in the background over about 48 hours."
+    },
+    {
+      "id": "openai-embeddings-prod",
+      "description": "Managed model endpoint, 41M tokens",
+      "cloud": "AZURE",
+      "category": "AI / ML",
+      "team": "ML Platform",
+      "cost": 6510,
+      "prior": 5484,
+      "flag": false,
+      "saving": 1300,
+      "confidence": "medium",
+      "finding": "Embeddings are recomputed on every document ingest, including for documents whose text has not changed. A content hash check would skip most of them. Nothing is batched, so everything pays the real-time rate.",
+      "current_config": {
+        "lang": "python",
+        "label": "ingest/embed.py (current)",
+        "code": "def ingest(doc):\n    # Every ingest embeds, whether or not the text changed\n    vector = client.embeddings.create(\n        model=\"text-embedding-3-large\",\n        input=doc.text,\n    ).data[0].embedding\n    store.upsert(doc.id, vector)"
+      },
+      "change": {
+        "lang": "python",
+        "label": "Skip unchanged text, batch the rest",
+        "code": "import hashlib\n\ndef ingest(doc):\n    digest = hashlib.sha256(doc.text.encode()).hexdigest()\n    if store.get_digest(doc.id) == digest:\n        return                      # text unchanged, vector still valid\n    pending.append((doc.id, doc.text, digest))\n\ndef flush(pending):\n    # One call per 512 documents instead of one per document\n    vectors = client.embeddings.create(\n        model=\"text-embedding-3-large\",\n        input=[text for _, text, _ in pending],\n    ).data\n    for (doc_id, _, digest), v in zip(pending, vectors):\n        store.upsert(doc_id, v.embedding, digest=digest)"
+      },
+      "maths": [
+        "41M tokens billed this month",
+        "Ingest logs: 62% of documents re-ingested with byte-identical text",
+        "Hash check removes 25.4M tokens, but re-embedding after model upgrades still needed",
+        "Conservative estimate: 20% token reduction = $1,302",
+        "Batching adds no direct token saving, it reduces per-call overhead only"
+      ],
+      "risk": "The digest must be invalidated when the embedding model version changes, or stale vectors persist silently. Store the model name alongside the digest.",
+      "effort": "A small code change plus a schema column. Half a day, and it needs a backfill decision."
+    },
+    {
+      "id": "vm-scaleset-batch-nonprod",
+      "description": "Non-production, no shutdown schedule",
+      "cloud": "AZURE",
+      "category": "Compute",
+      "team": "Developer Experience",
+      "cost": 5940,
+      "prior": 4032,
+      "flag": true,
+      "saving": 3800,
+      "confidence": "high",
+      "finding": "A non-production batch scale set with no start/stop schedule. It bills 168 hours a week to serve a team that works about 45. Nothing depends on it outside working hours - the nightly job it was built for was retired in March.",
+      "current_config": {
+        "lang": "hcl",
+        "label": "terraform/batch-nonprod.tf (current)",
+        "code": "resource \"azurerm_linux_virtual_machine_scale_set\" \"batch_nonprod\" {\n  name      = \"vm-scaleset-batch-nonprod\"\n  sku       = \"Standard_D8s_v5\"\n  instances = 8\n  priority  = \"Regular\"\n  tags      = { env = \"nonprod\" }\n}\n\n# No autoscale schedule, no auto-shutdown, no dev/test pricing."
+      },
+      "change": {
+        "lang": "hcl",
+        "label": "Scale to zero outside working hours",
+        "code": "resource \"azurerm_monitor_autoscale_setting\" \"batch_nonprod\" {\n  target_resource_id = azurerm_linux_virtual_machine_scale_set.batch_nonprod.id\n\n  profile {\n    name = \"weekday-hours\"\n    capacity { minimum = 8, maximum = 8, default = 8 }\n    recurrence {\n      timezone = \"Eastern Standard Time\"\n      days     = [\"Monday\",\"Tuesday\",\"Wednesday\",\"Thursday\",\"Friday\"]\n      hours    = [7]\n      minutes  = [0]\n    }\n  }\n\n  profile {\n    name = \"off-hours\"\n    capacity { minimum = 0, maximum = 0, default = 0 }\n    recurrence {\n      timezone = \"Eastern Standard Time\"\n      days     = [\"Monday\",\"Tuesday\",\"Wednesday\",\"Thursday\",\"Friday\"]\n      hours    = [19]\n      minutes  = [0]\n    }\n  }\n}"
+      },
+      "maths": [
+        "Running 168 hours a week, needed for about 60 (7am-7pm weekdays)",
+        "Idle share: 108 / 168 = 64%",
+        "$5,940 x 0.64 = $3,802, rounded to $3,800",
+        "Applying dev/test subscription rates on top would save a further ~$700, not counted here"
+      ],
+      "risk": "If anyone has come to rely on it overnight the job will fail at 7pm. Announce, then watch for a week before removing the manual override.",
+      "effort": "One Terraform apply. The lowest-risk item on this list."
+    },
+    {
+      "id": "natgw-hub-prod-eastus",
+      "description": "NAT gateway, 38 TB processed",
+      "cloud": "AZURE",
+      "category": "Networking",
+      "team": "Core API",
+      "cost": 4220,
+      "prior": 3850,
+      "flag": false,
+      "saving": 1180,
+      "confidence": "medium",
+      "finding": "NAT gateway charges per gigabyte processed. Flow logs show 61% of the traffic is application pods reaching Azure Storage and Key Vault - traffic that never needed to leave the virtual network and is only routed through NAT because no private endpoints exist.",
+      "current_config": {
+        "lang": "hcl",
+        "label": "terraform/network.tf (current)",
+        "code": "resource \"azurerm_subnet\" \"apps\" {\n  name                 = \"snet-apps\"\n  address_prefixes     = [\"10.20.4.0/22\"]\n  # No service endpoints, no private endpoints.\n  # Storage and Key Vault traffic exits via NAT and is billed per GB.\n}"
+      },
+      "change": {
+        "lang": "hcl",
+        "label": "Keep internal traffic inside the network",
+        "code": "resource \"azurerm_private_endpoint\" \"storage\" {\n  name                = \"pe-datalake\"\n  subnet_id           = azurerm_subnet.apps.id\n  private_service_connection {\n    name                           = \"psc-datalake\"\n    private_connection_resource_id = azurerm_storage_account.datalake.id\n    subresource_names              = [\"blob\"]\n    is_manual_connection           = false\n  }\n}\n\nresource \"azurerm_private_endpoint\" \"kv\" {\n  name                = \"pe-keyvault\"\n  subnet_id           = azurerm_subnet.apps.id\n  private_service_connection {\n    name                           = \"psc-kv\"\n    private_connection_resource_id = azurerm_key_vault.main.id\n    subresource_names              = [\"vault\"]\n    is_manual_connection           = false\n  }\n}"
+      },
+      "maths": [
+        "38 TB processed at $0.045/GB = $1,752 of the $4,220 (rest is hourly gateway charge)",
+        "61% of flows are storage and vault bound = 23.2 TB",
+        "23,756 GB x $0.045 = $1,069 removed from NAT",
+        "Private endpoints cost $0.01/hour each: 2 x 730 x $0.01 = $15",
+        "Plus reduced egress on the storage side: about $126",
+        "Net $1,180"
+      ],
+      "risk": "Private endpoints change DNS resolution inside the VNet. Needs a private DNS zone and a short maintenance window, or name resolution breaks for those services.",
+      "effort": "Half a day including DNS. Requires a change window."
+    },
+    {
+      "id": "gcs-backup-archive",
+      "description": "Cloud Storage, archive class, 780 TB",
+      "cloud": "GCP",
+      "category": "Storage",
+      "team": "Data Platform",
+      "cost": 3710,
+      "prior": 3763,
+      "flag": false,
+      "saving": 0,
+      "confidence": "high",
+      "finding": "Nothing to do here, and that is worth stating. The bucket is already on the archive class, has a lifecycle policy, and retention is set by a compliance requirement rather than by choice. Listing it with a zero keeps the analysis honest.",
+      "current_config": {
+        "lang": "json",
+        "label": "Lifecycle policy (already correct)",
+        "code": "{\n  \"lifecycle\": {\n    \"rule\": [\n      {\n        \"action\": { \"type\": \"SetStorageClass\", \"storageClass\": \"ARCHIVE\" },\n        \"condition\": { \"age\": 30 }\n      },\n      {\n        \"action\": { \"type\": \"Delete\" },\n        \"condition\": { \"age\": 2555 }\n      }\n    ]\n  }\n}"
+      },
+      "change": null,
+      "maths": [
+        "780 TB at archive class $0.0012/GB = $3,710",
+        "The next class down does not exist",
+        "Seven-year retention is a regulatory requirement, not a default"
+      ],
+      "risk": "None. No change proposed.",
+      "effort": "None."
+    }
+  ]
+}
