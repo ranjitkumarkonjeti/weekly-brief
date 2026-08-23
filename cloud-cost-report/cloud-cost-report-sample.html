@@ -1,0 +1,914 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cloud cost savings report &mdash; August 2026</title>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700&family=Public+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  *{box-sizing:border-box}
+  body{margin:0;background:#FBFBF9;color:#12161C;
+    font-family:"Public Sans","Helvetica Neue",Arial,sans-serif;
+    font-size:15px;line-height:1.55;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:1040px;margin:0 auto;padding:0 28px 72px}
+  header{border-bottom:2px solid #12161C;padding:40px 0 22px;margin-bottom:18px}
+  .eyebrow{font-family:"IBM Plex Mono","SF Mono",Consolas,monospace;font-size:11px;
+    letter-spacing:.14em;text-transform:uppercase;color:#666E77;margin:0 0 14px}
+  h1{font-family:"Archivo","Helvetica Neue",Arial,sans-serif;font-weight:700;
+    font-size:38px;line-height:1.08;letter-spacing:-.02em;margin:0 0 10px}
+  .standfirst{color:#666E77;margin:0;max-width:64ch}
+  table.totals{width:100%;border-collapse:collapse;margin-top:30px;table-layout:fixed}
+  table.totals td{vertical-align:top;padding:0 18px 0 0;border:none}
+  .total-figure{font-family:"Archivo","Helvetica Neue",Arial,sans-serif;font-weight:700;
+    font-size:32px;letter-spacing:-.03em;line-height:1.05}
+  .total-label{font-family:"IBM Plex Mono","SF Mono",Consolas,monospace;font-size:10.5px;
+    letter-spacing:.08em;text-transform:uppercase;color:#666E77;margin-top:8px;line-height:1.45}
+  .up{color:#9E3A26}.down{color:#1F5F4E}.flat{color:#767C84}
+  section{margin-top:48px}
+  h2{font-family:"Archivo","Helvetica Neue",Arial,sans-serif;font-weight:600;font-size:13px;
+    letter-spacing:.12em;text-transform:uppercase;margin:0;padding-bottom:10px;
+    border-bottom:1px solid #12161C}
+  .sub{color:#666E77;font-size:14px;margin:13px 0 20px;max-width:68ch}
+  table.spine{width:100%;border-collapse:collapse;border-left:2px solid #12161C}
+  table.spine td{border-bottom:1px solid #DCDED8;padding:13px 10px;vertical-align:middle}
+  table.spine tr:last-child td{border-bottom:none}
+  .nm{padding-left:18px;font-weight:600;font-size:14px;width:220px}
+  .nm em{display:block;font-family:"IBM Plex Mono","SF Mono",Consolas,monospace;font-size:11px;
+    color:#666E77;font-weight:400;font-style:normal;margin-top:3px}
+  .bar{display:block;height:19px;line-height:19px;font-size:1px;overflow:hidden;background:#12161C}
+  .bar.hot{background:#9E3A26}
+  .cost{font-family:"IBM Plex Mono","SF Mono",Consolas,monospace;font-size:14px;font-weight:500;
+    text-align:right;white-space:nowrap;width:104px}
+  .dols,.pct{font-family:"IBM Plex Mono","SF Mono",Consolas,monospace;font-size:12.5px;
+    font-weight:500;text-align:right;white-space:nowrap;width:84px}
+  tr.flag td{background:#FAF3F0}
+  tr.flag td.nm{border-left:3px solid #9E3A26;padding-left:15px}
+  .attrib{margin-top:28px;border-top:1px solid #DCDED8;padding-top:22px}
+  .attrib-title{font-family:"IBM Plex Mono","SF Mono",Consolas,monospace;font-size:11px;
+    letter-spacing:.1em;text-transform:uppercase;color:#666E77;margin:0 0 12px}
+  table.stack{width:100%;border-collapse:collapse;table-layout:fixed}
+  table.stack td{height:34px;padding:0;border:none}
+  table.keys{width:100%;border-collapse:collapse;margin-top:14px}
+  table.keys td{padding:0 12px 6px 0;font-size:12.5px;color:#666E77;vertical-align:middle;border:none}
+  .sw{display:inline-block;width:11px;height:11px;margin-right:7px;vertical-align:-1px;font-size:1px}
+  .attrib-note{color:#666E77;font-size:13.5px;margin:12px 0 0;max-width:68ch}
+  table.res-table{width:100%;border-collapse:collapse;margin-top:4px}
+  table.res-table th{font-family:"IBM Plex Mono","SF Mono",Consolas,monospace;font-size:10.5px;
+    letter-spacing:.09em;text-transform:uppercase;color:#666E77;text-align:left;font-weight:500;
+    padding:0 10px 9px 0;border-bottom:1px solid #12161C}
+  table.res-table th.num,table.res-table td.num{text-align:right;padding-right:0}
+  table.res-table td{padding:11px 10px 11px 0;border-bottom:1px solid #DCDED8;
+    vertical-align:top;font-size:13.5px}
+  tr.row{cursor:pointer}
+  tr.row:hover td{background:#F4F4F0}
+  .tw{display:inline-block;width:14px;color:#9AA0A6;font-size:11px}
+  tr.row.open .tw{color:#12161C}
+  .res{font-family:"IBM Plex Mono","SF Mono",Consolas,monospace;font-size:13px;font-weight:500}
+  .res em{display:block;font-family:"Public Sans","Helvetica Neue",Arial,sans-serif;font-size:12px;
+    color:#666E77;font-weight:400;font-style:normal;margin-top:3px;padding-left:14px}
+  .cloud{font-family:"IBM Plex Mono","SF Mono",Consolas,monospace;font-size:10.5px;
+    letter-spacing:.06em;border:1px solid #DCDED8;padding:1.5px 6px;color:#666E77;white-space:nowrap}
+  table.res-table td.num{font-family:"IBM Plex Mono","SF Mono",Consolas,monospace;
+    font-size:13.5px;white-space:nowrap}
+  td.save{color:#1F5F4E;font-weight:600}
+  tr.detail{display:none}
+  tr.detail.open{display:table-row}
+  tr.detail td{background:#F2F2EE;padding:0;border-bottom:1px solid #12161C}
+  .panel{padding:22px 26px 24px}
+  .panel-head{margin-bottom:12px}
+  .savepill{display:inline-block;background:#1F5F4E;color:#fff;font-weight:600;font-size:12.5px;
+    padding:3px 10px;margin-right:10px}
+  .savepill.zero{background:#767C84}
+  .conf{font-family:"IBM Plex Mono","SF Mono",Consolas,monospace;font-size:11px;
+    letter-spacing:.06em;text-transform:uppercase;color:#666E77}
+  .finding{margin:0 0 18px;max-width:96ch;font-size:14px}
+  .cols{width:100%;margin-bottom:6px}
+  .cols:after{content:"";display:table;clear:both}
+  .col{float:left;width:48%;margin-right:4%}
+  .col:last-child{margin-right:0}
+  .codewrap{margin-bottom:16px}
+  .codelabel{font-family:"IBM Plex Mono","SF Mono",Consolas,monospace;font-size:10.5px;
+    letter-spacing:.08em;text-transform:uppercase;color:#666E77;margin-bottom:6px}
+  pre.code{margin:0;background:#12161C;color:#E8E8E4;padding:14px 16px;overflow-x:auto;
+    font-family:"IBM Plex Mono","SF Mono",Consolas,monospace;font-size:11.5px;line-height:1.6}
+  pre.code code{font-family:inherit}
+  .nochange{font-size:13.5px;color:#666E77;font-style:italic;margin:22px 0 0}
+  .panel h4{font-family:"Archivo","Helvetica Neue",Arial,sans-serif;font-size:11px;
+    letter-spacing:.09em;text-transform:uppercase;color:#12161C;margin:0 0 8px}
+  ul.maths{margin:0 0 16px;padding-left:18px;font-family:"IBM Plex Mono","SF Mono",Consolas,monospace;
+    font-size:11.5px;color:#3C4550;line-height:1.75}
+  .risk{font-size:13px;color:#3C4550;margin:0 0 16px}
+  footer{margin-top:52px;padding-top:16px;border-top:1px solid #DCDED8;
+    font-family:"IBM Plex Mono","SF Mono",Consolas,monospace;font-size:11px;color:#666E77;line-height:1.7}
+  @media (max-width:820px){
+    .wrap{padding:0 18px 56px}
+    h1{font-size:27px}.total-figure{font-size:24px}
+    td.barcell,th.opt,td.opt{display:none}
+    .nm{padding-left:14px;width:auto}
+    .col{float:none;width:100%;margin-right:0}
+  }
+  @media print{
+    body{background:#fff}.wrap{max-width:100%;padding:0}
+    tr.detail{display:table-row}
+    section{page-break-inside:avoid}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <p class="eyebrow">Sample report &middot; mock data &middot; not real billing</p>
+  <h1>Cloud cost savings report</h1>
+  <p class="standfirst">Azure and GCP, billing month of August 2026, split by category and by owning
+  team. Click any resource to see the configuration driving its cost and the change that would
+  reduce it.</p>
+
+  <table class="totals">
+    <tr>
+      <td>
+        <div class="total-figure">$148,320</div>
+        <div class="total-label">Invoiced this month</div>
+      </td>
+      <td>
+        <div class="total-figure up">+9.4%</div>
+        <div class="total-label">Against last month</div>
+      </td>
+      <td>
+        <div class="total-figure">62%</div>
+        <div class="total-label">Of the rise is ML Platform</div>
+      </td>
+      <td>
+        <div class="total-figure down">$29,690</div>
+        <div class="total-label">Identified saving per month</div>
+      </td>
+      <td>
+        <div class="total-figure down">$356,280</div>
+        <div class="total-label">If held for a year</div>
+      </td>
+    </tr>
+  </table>
+</header>
+
+<section>
+  <h2>Where the money went</h2>
+  <p class="sub">Six categories, ordered by spend. Bars share one scale, so the length of each is
+  its size relative to the largest.</p>
+  <table class="spine">
+    <tr>
+      <td class="nm">Compute<em>39.7% of spend</em></td>
+      <td class="barcell"><div class="bar" style="width:300px">&nbsp;</div></td>
+      <td class="cost">$58,940</td>
+      <td class="pct up">+8.2%</td>
+    </tr>
+    <tr>
+      <td class="nm">AI / ML<em>21.0% of spend</em></td>
+      <td class="barcell"><div class="bar hot" style="width:159px">&nbsp;</div></td>
+      <td class="cost">$31,180</td>
+      <td class="pct up">+34.6%</td>
+    </tr>
+    <tr>
+      <td class="nm">Database<em>16.6% of spend</em></td>
+      <td class="barcell"><div class="bar" style="width:125px">&nbsp;</div></td>
+      <td class="cost">$24,610</td>
+      <td class="pct down">−1.2%</td>
+    </tr>
+    <tr>
+      <td class="nm">Storage<em>11.8% of spend</em></td>
+      <td class="barcell"><div class="bar" style="width:89px">&nbsp;</div></td>
+      <td class="cost">$17,450</td>
+      <td class="pct down">−3.4%</td>
+    </tr>
+    <tr>
+      <td class="nm">Networking<em>7.6% of spend</em></td>
+      <td class="barcell"><div class="bar" style="width:57px">&nbsp;</div></td>
+      <td class="cost">$11,290</td>
+      <td class="pct up">+11.8%</td>
+    </tr>
+    <tr>
+      <td class="nm">Support &amp; other<em>3.3% of spend</em></td>
+      <td class="barcell"><div class="bar" style="width:25px">&nbsp;</div></td>
+      <td class="cost">$4,850</td>
+      <td class="pct flat">+0.0%</td>
+    </tr>
+  </table>
+</section>
+
+<section>
+  <h2>Spend by engineering team</h2>
+  <p class="sub">Assigned by resource owner tag. The dollar column is what changed since last month,
+  and it matters more than the percentage: a large team moving a few per cent costs more than a
+  small team moving twenty.</p>
+  <table class="spine">
+    <tr>
+      <td class="nm">Core API<em>aks-prod-eastus-nodepool3</em></td>
+      <td class="barcell"><div class="bar" style="width:300px">&nbsp;</div></td>
+      <td class="cost">$46,180</td>
+      <td class="dols up">+$2,395</td>
+      <td class="pct up">+5.5%</td>
+    </tr>
+    <tr class="flag">
+      <td class="nm">ML Platform<em>gke-ml-training-a100-pool</em></td>
+      <td class="barcell"><div class="bar hot" style="width:253px">&nbsp;</div></td>
+      <td class="cost">$38,940</td>
+      <td class="dols up">+$7,910</td>
+      <td class="pct up">+25.5%</td>
+    </tr>
+    <tr>
+      <td class="nm">Data Platform<em>bq-analytics-warehouse</em></td>
+      <td class="barcell"><div class="bar" style="width:180px">&nbsp;</div></td>
+      <td class="cost">$27,650</td>
+      <td class="dols up">+$648</td>
+      <td class="pct up">+2.4%</td>
+    </tr>
+    <tr>
+      <td class="nm">Billing &amp; Payments<em>sql-mi-billing-prod</em></td>
+      <td class="barcell"><div class="bar" style="width:107px">&nbsp;</div></td>
+      <td class="cost">$16,420</td>
+      <td class="dols up">+$306</td>
+      <td class="pct up">+1.9%</td>
+    </tr>
+    <tr>
+      <td class="nm">Developer Experience<em>vm-scaleset-batch-nonprod</em></td>
+      <td class="barcell"><div class="bar" style="width:77px">&nbsp;</div></td>
+      <td class="cost">$11,780</td>
+      <td class="dols up">+$1,823</td>
+      <td class="pct up">+18.3%</td>
+    </tr>
+    <tr>
+      <td class="nm">Untagged &amp; shared<em>Support, licences, unassigned</em></td>
+      <td class="barcell"><div class="bar" style="width:48px">&nbsp;</div></td>
+      <td class="cost">$7,350</td>
+      <td class="dols down">−$322</td>
+      <td class="pct down">−4.2%</td>
+    </tr>
+  </table>
+
+  <div class="attrib">
+    <p class="attrib-title">Who caused the $12,760 increase</p>
+    <table class="stack"><tr><td style="width:60.5%;background:#9E3A26"></td><td style="width:18.3%;background:#C2714F"></td><td style="width:13.9%;background:#3C4550"></td><td style="width:5.0%;background:#767C84"></td><td style="width:2.3%;background:#B9BEC4"></td></tr></table>
+    <table class="keys"><tr><td><span class="sw" style="background:#9E3A26"></span>ML Platform &nbsp;$7,910</td><td><span class="sw" style="background:#C2714F"></span>Core API &nbsp;$2,395</td><td><span class="sw" style="background:#3C4550"></span>Developer Experience &nbsp;$1,823</td><td><span class="sw" style="background:#767C84"></span>Data Platform &nbsp;$648</td><td><span class="sw" style="background:#B9BEC4"></span>Billing &amp; Payments &nbsp;$306</td></tr></table>
+    <p class="attrib-note">Teams whose spend fell are netted off the total rather than shown here.</p>
+  </div>
+</section>
+
+<section>
+  <h2>Top resources &mdash; click any row to open it</h2>
+  <p class="sub">These account for $97,025, roughly 65% of the month. Shaded rows rose
+  more than 40% and have not been explained yet. Opening a row shows the current configuration, the
+  change that would reduce the cost, how the saving was calculated, and what could go wrong.</p>
+
+  <table class="res-table">
+    <thead>
+      <tr>
+        <th width="30%">Resource</th>
+        <th class="opt" width="8%">Cloud</th>
+        <th class="opt">Team</th>
+        <th class="num" width="11%">Cost</th>
+        <th class="num" width="10%">vs last</th>
+        <th class="num" width="12%">Saving</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr class="row">
+        <td class="res"><span class="tw">&#9656;</span>aks-prod-eastus-nodepool3<em>Kubernetes node pool, 24 x D8s v5</em></td>
+        <td class="opt"><span class="cloud">AZURE</span></td>
+        <td class="opt">Core API</td>
+        <td class="num">$19,840</td>
+        <td class="num up">+12.4%</td>
+        <td class="num save">$5,550</td>
+      </tr>
+      <tr class="detail">
+        <td colspan="6">
+          <div class="panel">
+            <div class="panel-head"><span class="savepill">Saves $5,550 a month</span><span class="conf">High confidence</span></div>
+            <p class="finding">Every node in this pool bills at pay-as-you-go rates. The pool has not dropped below 20 nodes in six months, so 20 of the 24 nodes are effectively permanent capacity being rented by the hour.</p>
+            <div class="cols">
+              <div class="col"><div class="codewrap"><div class="codelabel">terraform/aks.tf (current)</div><pre class="code"><code>resource "azurerm_kubernetes_cluster_node_pool" "prod3" {
+  name                  = "nodepool3"
+  vm_size               = "Standard_D8s_v5"
+  node_count            = 24
+  enable_auto_scaling   = true
+  min_count             = 20
+  max_count             = 32
+  priority              = "Regular"   # pay-as-you-go, billed hourly
+}</code></pre></div></div>
+              <div class="col"><div class="codewrap"><div class="codelabel">Buy a 1-year savings plan for the stable floor</div><pre class="code"><code># No change to the node pool itself. The saving is a purchase,
+# not a redeploy - capacity keeps running while the rate changes.
+
+resource "azurerm_billing_savings_plan" "compute_1yr" {
+  scope         = "/subscriptions/${var.subscription_id}"
+  term          = "P1Y"
+  billing_plan  = "Monthly"
+  # cover the 20-node floor only, leave the burst on demand
+  commitment    = { amount = 11000, currency = "USD", grain = "Monthly" }
+}</code></pre></div></div>
+            </div>
+            <div class="cols">
+              <div class="col">
+                <h4>How the number is worked out</h4>
+                <ul class="maths"><li>20 nodes never released in 6 months = the committed floor</li><li>20 / 24 nodes x $19,840 = $16,533 of the bill is stable capacity</li><li>Azure 1-year compute savings plan on D-series = about 34% off pay-as-you-go</li><li>$16,533 x 0.34 = $5,621, rounded down to $5,550 to allow for rate drift</li></ul>
+              </div>
+              <div class="col">
+                <h4>What could go wrong</h4>
+                <p class="risk">A savings plan is a one-year financial commitment. If the pool is retired early the commitment still bills. Covering only the 20-node floor keeps the burst capacity flexible.</p>
+                <h4>Effort</h4>
+                <p class="risk">One purchase, no deployment, no downtime.</p>
+              </div>
+            </div>
+          </div>
+        </td>
+      </tr>
+      <tr class="row flag">
+        <td class="res"><span class="tw">&#9656;</span>gke-ml-training-a100-pool<em>GPU node pool, 8 x A100 80GB</em></td>
+        <td class="opt"><span class="cloud">GCP</span></td>
+        <td class="opt">ML Platform</td>
+        <td class="num">$17,220</td>
+        <td class="num up">+61.2%</td>
+        <td class="num save">$8,270</td>
+      </tr>
+      <tr class="detail">
+        <td colspan="6">
+          <div class="panel">
+            <div class="panel-head"><span class="savepill">Saves $8,270 a month</span><span class="conf">High confidence</span></div>
+            <p class="finding">Training jobs run on on-demand A100s, and the pool floor is 2 nodes so it never scales to zero. Job logs show 94% of runs are checkpointed every 15 minutes, which means they survive preemption and do not need on-demand capacity.</p>
+            <div class="cols">
+              <div class="col"><div class="codewrap"><div class="codelabel">terraform/gke-ml.tf (current)</div><pre class="code"><code>resource "google_container_node_pool" "ml_training" {
+  name    = "ml-training-a100-pool"
+  cluster = google_container_cluster.ml.id
+
+  autoscaling {
+    min_node_count = 2      # never returns to zero
+    max_node_count = 8
+  }
+
+  node_config {
+    machine_type = "a2-highgpu-8g"
+    spot         = false    # on-demand rates, 24/7 availability
+    guest_accelerator {
+      type  = "nvidia-tesla-a100"
+      count = 8
+    }
+  }
+}</code></pre></div></div>
+              <div class="col"><div class="codewrap"><div class="codelabel">Spot capacity for checkpointed jobs, and a true zero floor</div><pre class="code"><code>resource "google_container_node_pool" "ml_training" {
+  name    = "ml-training-a100-pool"
+  cluster = google_container_cluster.ml.id
+
+  autoscaling {
+    min_node_count = 0      # idle days cost nothing
+    max_node_count = 8
+  }
+
+  node_config {
+    machine_type = "a2-highgpu-8g"
+    spot         = true     # about 60-70% off, can be reclaimed
+    guest_accelerator {
+      type  = "nvidia-tesla-a100"
+      count = 8
+    }
+    taint {
+      key    = "cloud.google.com/gke-spot"
+      value  = "true"
+      effect = "NO_SCHEDULE"
+    }
+  }
+}
+
+# Jobs that cannot tolerate preemption opt out by tolerating
+# the taint only when they checkpoint:
+#   tolerations:
+#     - key: cloud.google.com/gke-spot
+#       operator: Equal
+#       value: "true"
+#       effect: NoSchedule</code></pre></div></div>
+            </div>
+            <div class="cols">
+              <div class="col">
+                <h4>How the number is worked out</h4>
+                <ul class="maths"><li>Pool ran 19 of 31 days; 12 idle days still billed the 2-node floor</li><li>Floor waste: 2/8 nodes x 12/31 days x $17,220 = $1,666</li><li>Active spend on the 19 running days = $15,554</li><li>94% of runs are checkpointed and can move to spot</li><li>$15,554 x 0.94 x 0.45 average spot discount = $6,579</li><li>$1,666 + $6,579 = $8,245, rounded to $8,270 against current spot rates</li></ul>
+              </div>
+              <div class="col">
+                <h4>What could go wrong</h4>
+                <p class="risk">Spot nodes can be reclaimed with 30 seconds notice. Only jobs that checkpoint should tolerate the taint. The 6% of runs that do not checkpoint stay on an on-demand pool.</p>
+                <h4>Effort</h4>
+                <p class="risk">One Terraform apply plus a toleration added to the training job template. Roughly half a day.</p>
+              </div>
+            </div>
+          </div>
+        </td>
+      </tr>
+      <tr class="row">
+        <td class="res"><span class="tw">&#9656;</span>vm-scaleset-api-prod<em>VM scale set, autoscaled 6-20</em></td>
+        <td class="opt"><span class="cloud">AZURE</span></td>
+        <td class="opt">Core API</td>
+        <td class="num">$13,405</td>
+        <td class="num up">+4.1%</td>
+        <td class="num save">$1,880</td>
+      </tr>
+      <tr class="detail">
+        <td colspan="6">
+          <div class="panel">
+            <div class="panel-head"><span class="savepill">Saves $1,880 a month</span><span class="conf">Medium confidence</span></div>
+            <p class="finding">The scale set is correctly autoscaling and is not oversized. The only saving here is rate, not shape: the 6-instance floor has never been breached downward in a year.</p>
+            <div class="cols">
+              <div class="col"><div class="codewrap"><div class="codelabel">terraform/api-vmss.tf (current)</div><pre class="code"><code>resource "azurerm_linux_virtual_machine_scale_set" "api" {
+  name       = "vm-scaleset-api-prod"
+  sku        = "Standard_D4s_v5"
+  instances  = 6
+  priority   = "Regular"
+}
+
+resource "azurerm_monitor_autoscale_setting" "api" {
+  profile {
+    capacity { minimum = 6, maximum = 20, default = 6 }
+  }
+}</code></pre></div></div>
+              <div class="col"><div class="codewrap"><div class="codelabel">Reserve the floor only</div><pre class="code"><code># Extend the existing savings plan to cover the 6-instance floor.
+# No change to the scale set or the autoscale rules.
+
+#   6 x Standard_D4s_v5, 1-year term, region eastus
+#   Leaves instances 7-20 on pay-as-you-go so bursts stay elastic.</code></pre></div></div>
+            </div>
+            <div class="cols">
+              <div class="col">
+                <h4>How the number is worked out</h4>
+                <ul class="maths"><li>6 of an average 11 running instances are permanent = 55% of the bill</li><li>$13,405 x 0.55 = $7,373 of stable capacity</li><li>1-year savings plan on D4s v5 = about 26% off</li><li>$7,373 x 0.26 = $1,917, rounded down to $1,880</li></ul>
+              </div>
+              <div class="col">
+                <h4>What could go wrong</h4>
+                <p class="risk">Same one-year commitment risk as the AKS pool. Low, because the API tier is not scheduled for replacement.</p>
+                <h4>Effort</h4>
+                <p class="risk">Purchase only. No deployment.</p>
+              </div>
+            </div>
+          </div>
+        </td>
+      </tr>
+      <tr class="row">
+        <td class="res"><span class="tw">&#9656;</span>sql-mi-billing-prod<em>SQL managed instance, business critical</em></td>
+        <td class="opt"><span class="cloud">AZURE</span></td>
+        <td class="opt">Billing &amp; Payments</td>
+        <td class="num">$11,960</td>
+        <td class="num up">+1.8%</td>
+        <td class="num save">$3,110</td>
+      </tr>
+      <tr class="detail">
+        <td colspan="6">
+          <div class="panel">
+            <div class="panel-head"><span class="savepill">Saves $3,110 a month</span><span class="conf">High confidence</span></div>
+            <p class="finding">The tier is correct - billing genuinely needs the availability guarantees of Business Critical. But the instance runs at pay-as-you-go rates and has been unchanged for two years, and Azure Hybrid Benefit is not applied despite the licences being owned.</p>
+            <div class="cols">
+              <div class="col"><div class="codewrap"><div class="codelabel">terraform/sql-mi.tf (current)</div><pre class="code"><code>resource "azurerm_mssql_managed_instance" "billing" {
+  name             = "sql-mi-billing-prod"
+  sku_name         = "BC_Gen5"
+  vcores           = 16
+  storage_size_in_gb = 2048
+  license_type     = "LicenseIncluded"   # paying for SQL licences twice
+}</code></pre></div></div>
+              <div class="col"><div class="codewrap"><div class="codelabel">Apply owned licences, then reserve the capacity</div><pre class="code"><code>resource "azurerm_mssql_managed_instance" "billing" {
+  name             = "sql-mi-billing-prod"
+  sku_name         = "BC_Gen5"
+  vcores           = 16
+  storage_size_in_gb = 2048
+  license_type     = "BasePrice"   # Azure Hybrid Benefit - use owned licences
+}
+
+# Then a 1-year reserved capacity purchase for 16 vCores, BC_Gen5, eastus.</code></pre></div></div>
+            </div>
+            <div class="cols">
+              <div class="col">
+                <h4>How the number is worked out</h4>
+                <ul class="maths"><li>Azure Hybrid Benefit on Business Critical = about 18% off the vCore rate</li><li>$11,960 x 0.18 = $2,153</li><li>1-year reserved capacity on the remaining compute = about 11% further</li><li>($11,960 - $2,153) x 0.11 = $1,079</li><li>$2,153 + $1,079 = $3,232, rounded down to $3,110 for storage that cannot be reserved</li></ul>
+              </div>
+              <div class="col">
+                <h4>What could go wrong</h4>
+                <p class="risk">Hybrid Benefit requires the licences to have Software Assurance. Finance has confirmed 24 core licences are held and unused. Changing license_type is a metadata update with no restart.</p>
+                <h4>Effort</h4>
+                <p class="risk">One Terraform apply and one purchase. No downtime.</p>
+              </div>
+            </div>
+          </div>
+        </td>
+      </tr>
+      <tr class="row">
+        <td class="res"><span class="tw">&#9656;</span>bq-analytics-warehouse<em>BigQuery, on-demand query pricing</em></td>
+        <td class="opt"><span class="cloud">GCP</span></td>
+        <td class="opt">Data Platform</td>
+        <td class="num">$7,340</td>
+        <td class="num up">+3.9%</td>
+        <td class="num save">$2,190</td>
+      </tr>
+      <tr class="detail">
+        <td colspan="6">
+          <div class="panel">
+            <div class="panel-head"><span class="savepill">Saves $2,190 a month</span><span class="conf">High confidence</span></div>
+            <p class="finding">Queries are billed per terabyte scanned. Volume has sat between 1,150 and 1,220 TiB for four consecutive months, which is stable enough to commit to slots instead. Two scheduled queries also scan full tables where a partition filter would do.</p>
+            <div class="cols">
+              <div class="col"><div class="codewrap"><div class="codelabel">The pattern driving the scans</div><pre class="code"><code>-- Scheduled daily, scans the full events table every run
+SELECT user_id, event_type, COUNT(*) AS n
+FROM `analytics.events`
+WHERE event_type IN ('signup','purchase')
+GROUP BY 1, 2;
+
+-- events is 41 TB, partitioned on event_date, but the query
+-- has no partition filter, so every run scans all of it.</code></pre></div></div>
+              <div class="col"><div class="codewrap"><div class="codelabel">Filter the partition, then commit to slots</div><pre class="code"><code>-- 1. Add the partition filter (daily job only needs one day)
+SELECT user_id, event_type, COUNT(*) AS n
+FROM `analytics.events`
+WHERE event_date = CURRENT_DATE() - 1
+  AND event_type IN ('signup','purchase')
+GROUP BY 1, 2;
+
+-- 2. Enforce it so this cannot regress
+ALTER TABLE `analytics.events`
+SET OPTIONS (require_partition_filter = TRUE);
+
+-- 3. Then buy a baseline slot commitment for the steady volume:
+--    bq mk --capacity_commitment --plan=ANNUAL --slots=500</code></pre></div></div>
+            </div>
+            <div class="cols">
+              <div class="col">
+                <h4>How the number is worked out</h4>
+                <ul class="maths"><li>Two scheduled queries scan 41 TB daily where 0.4 TB would do</li><li>Wasted scan: 2 x 40.6 TB x 31 days = 2,517 TB, at $6.25/TiB = $735 (already reflected below)</li><li>Remaining steady volume after the fix = about 1,060 TiB</li><li>On-demand: 1,060 x $6.25 = $6,625</li><li>500 annual slots = $5,170/month flat, and covers the measured peak</li><li>$735 partition saving + $1,455 slot saving = $2,190</li></ul>
+              </div>
+              <div class="col">
+                <h4>What could go wrong</h4>
+                <p class="risk">Slot commitments cap concurrency. Peak slot usage measured over 90 days was 430, so 500 leaves headroom. require_partition_filter will break any query that omits the filter, which is the point, but it needs an announcement first.</p>
+                <h4>Effort</h4>
+                <p class="risk">Two query edits, one table option, one purchase. About two hours plus a notice period.</p>
+              </div>
+            </div>
+          </div>
+        </td>
+      </tr>
+      <tr class="row">
+        <td class="res"><span class="tw">&#9656;</span>st-datalake-raw-prod<em>Data Lake Gen2, hot tier, 412 TB</em></td>
+        <td class="opt"><span class="cloud">AZURE</span></td>
+        <td class="opt">Data Platform</td>
+        <td class="num">$6,880</td>
+        <td class="num down">−5.2%</td>
+        <td class="num save">$2,410</td>
+      </tr>
+      <tr class="detail">
+        <td colspan="6">
+          <div class="panel">
+            <div class="panel-head"><span class="savepill">Saves $2,410 a month</span><span class="conf">High confidence</span></div>
+            <p class="finding">All 412 TB sits in the hot tier. Access logs show 78% of the data has not been read in 90 days, and no lifecycle policy exists to move it down.</p>
+            <div class="cols">
+              <div class="col"><div class="codewrap"><div class="codelabel">Lifecycle management policy (current)</div><pre class="code"><code>{
+  "rules": []
+}
+
+// No rules. Everything written to this account stays
+// in the hot tier indefinitely.</code></pre></div></div>
+              <div class="col"><div class="codewrap"><div class="codelabel">Tier down on age, delete on retention limit</div><pre class="code"><code>{
+  "rules": [
+    {
+      "name": "raw-tier-down",
+      "enabled": true,
+      "type": "Lifecycle",
+      "definition": {
+        "filters": {
+          "blobTypes": ["blockBlob"],
+          "prefixMatch": ["raw/"]
+        },
+        "actions": {
+          "baseBlob": {
+            "tierToCool":    { "daysAfterModificationGreaterThan": 30 },
+            "tierToArchive": { "daysAfterModificationGreaterThan": 180 },
+            "delete":        { "daysAfterModificationGreaterThan": 2555 }
+          }
+        }
+      }
+    }
+  ]
+}</code></pre></div></div>
+            </div>
+            <div class="cols">
+              <div class="col">
+                <h4>How the number is worked out</h4>
+                <ul class="maths"><li>412 TB total, 321 TB untouched for 90+ days</li><li>Hot tier: $0.0184/GB/month. Cool: $0.0100. Archive: $0.0020</li><li>Move 180 TB to cool: 184,320 GB x ($0.0184 - $0.0100) = $1,548</li><li>Move 141 TB to archive: 144,384 GB x ($0.0184 - $0.0020) = $2,368</li><li>Less rehydration allowance for occasional archive reads: -$1,506</li><li>Net $2,410</li></ul>
+              </div>
+              <div class="col">
+                <h4>What could go wrong</h4>
+                <p class="risk">Archive tier reads take hours to rehydrate and cost per GB. Only data past 180 days goes there, and the analytics team has confirmed nothing older than 90 days is read interactively.</p>
+                <h4>Effort</h4>
+                <p class="risk">One policy document. Tiering happens in the background over about 48 hours.</p>
+              </div>
+            </div>
+          </div>
+        </td>
+      </tr>
+      <tr class="row">
+        <td class="res"><span class="tw">&#9656;</span>openai-embeddings-prod<em>Managed model endpoint, 41M tokens</em></td>
+        <td class="opt"><span class="cloud">AZURE</span></td>
+        <td class="opt">ML Platform</td>
+        <td class="num">$6,510</td>
+        <td class="num up">+18.7%</td>
+        <td class="num save">$1,300</td>
+      </tr>
+      <tr class="detail">
+        <td colspan="6">
+          <div class="panel">
+            <div class="panel-head"><span class="savepill">Saves $1,300 a month</span><span class="conf">Medium confidence</span></div>
+            <p class="finding">Embeddings are recomputed on every document ingest, including for documents whose text has not changed. A content hash check would skip most of them. Nothing is batched, so everything pays the real-time rate.</p>
+            <div class="cols">
+              <div class="col"><div class="codewrap"><div class="codelabel">ingest/embed.py (current)</div><pre class="code"><code>def ingest(doc):
+    # Every ingest embeds, whether or not the text changed
+    vector = client.embeddings.create(
+        model="text-embedding-3-large",
+        input=doc.text,
+    ).data[0].embedding
+    store.upsert(doc.id, vector)</code></pre></div></div>
+              <div class="col"><div class="codewrap"><div class="codelabel">Skip unchanged text, batch the rest</div><pre class="code"><code>import hashlib
+
+def ingest(doc):
+    digest = hashlib.sha256(doc.text.encode()).hexdigest()
+    if store.get_digest(doc.id) == digest:
+        return                      # text unchanged, vector still valid
+    pending.append((doc.id, doc.text, digest))
+
+def flush(pending):
+    # One call per 512 documents instead of one per document
+    vectors = client.embeddings.create(
+        model="text-embedding-3-large",
+        input=[text for _, text, _ in pending],
+    ).data
+    for (doc_id, _, digest), v in zip(pending, vectors):
+        store.upsert(doc_id, v.embedding, digest=digest)</code></pre></div></div>
+            </div>
+            <div class="cols">
+              <div class="col">
+                <h4>How the number is worked out</h4>
+                <ul class="maths"><li>41M tokens billed this month</li><li>Ingest logs: 62% of documents re-ingested with byte-identical text</li><li>Hash check removes 25.4M tokens, but re-embedding after model upgrades still needed</li><li>Conservative estimate: 20% token reduction = $1,302</li><li>Batching adds no direct token saving, it reduces per-call overhead only</li></ul>
+              </div>
+              <div class="col">
+                <h4>What could go wrong</h4>
+                <p class="risk">The digest must be invalidated when the embedding model version changes, or stale vectors persist silently. Store the model name alongside the digest.</p>
+                <h4>Effort</h4>
+                <p class="risk">A small code change plus a schema column. Half a day, and it needs a backfill decision.</p>
+              </div>
+            </div>
+          </div>
+        </td>
+      </tr>
+      <tr class="row flag">
+        <td class="res"><span class="tw">&#9656;</span>vm-scaleset-batch-nonprod<em>Non-production, no shutdown schedule</em></td>
+        <td class="opt"><span class="cloud">AZURE</span></td>
+        <td class="opt">Developer Experience</td>
+        <td class="num">$5,940</td>
+        <td class="num up">+47.3%</td>
+        <td class="num save">$3,800</td>
+      </tr>
+      <tr class="detail">
+        <td colspan="6">
+          <div class="panel">
+            <div class="panel-head"><span class="savepill">Saves $3,800 a month</span><span class="conf">High confidence</span></div>
+            <p class="finding">A non-production batch scale set with no start/stop schedule. It bills 168 hours a week to serve a team that works about 45. Nothing depends on it outside working hours - the nightly job it was built for was retired in March.</p>
+            <div class="cols">
+              <div class="col"><div class="codewrap"><div class="codelabel">terraform/batch-nonprod.tf (current)</div><pre class="code"><code>resource "azurerm_linux_virtual_machine_scale_set" "batch_nonprod" {
+  name      = "vm-scaleset-batch-nonprod"
+  sku       = "Standard_D8s_v5"
+  instances = 8
+  priority  = "Regular"
+  tags      = { env = "nonprod" }
+}
+
+# No autoscale schedule, no auto-shutdown, no dev/test pricing.</code></pre></div></div>
+              <div class="col"><div class="codewrap"><div class="codelabel">Scale to zero outside working hours</div><pre class="code"><code>resource "azurerm_monitor_autoscale_setting" "batch_nonprod" {
+  target_resource_id = azurerm_linux_virtual_machine_scale_set.batch_nonprod.id
+
+  profile {
+    name = "weekday-hours"
+    capacity { minimum = 8, maximum = 8, default = 8 }
+    recurrence {
+      timezone = "Eastern Standard Time"
+      days     = ["Monday","Tuesday","Wednesday","Thursday","Friday"]
+      hours    = [7]
+      minutes  = [0]
+    }
+  }
+
+  profile {
+    name = "off-hours"
+    capacity { minimum = 0, maximum = 0, default = 0 }
+    recurrence {
+      timezone = "Eastern Standard Time"
+      days     = ["Monday","Tuesday","Wednesday","Thursday","Friday"]
+      hours    = [19]
+      minutes  = [0]
+    }
+  }
+}</code></pre></div></div>
+            </div>
+            <div class="cols">
+              <div class="col">
+                <h4>How the number is worked out</h4>
+                <ul class="maths"><li>Running 168 hours a week, needed for about 60 (7am-7pm weekdays)</li><li>Idle share: 108 / 168 = 64%</li><li>$5,940 x 0.64 = $3,802, rounded to $3,800</li><li>Applying dev/test subscription rates on top would save a further ~$700, not counted here</li></ul>
+              </div>
+              <div class="col">
+                <h4>What could go wrong</h4>
+                <p class="risk">If anyone has come to rely on it overnight the job will fail at 7pm. Announce, then watch for a week before removing the manual override.</p>
+                <h4>Effort</h4>
+                <p class="risk">One Terraform apply. The lowest-risk item on this list.</p>
+              </div>
+            </div>
+          </div>
+        </td>
+      </tr>
+      <tr class="row">
+        <td class="res"><span class="tw">&#9656;</span>natgw-hub-prod-eastus<em>NAT gateway, 38 TB processed</em></td>
+        <td class="opt"><span class="cloud">AZURE</span></td>
+        <td class="opt">Core API</td>
+        <td class="num">$4,220</td>
+        <td class="num up">+9.6%</td>
+        <td class="num save">$1,180</td>
+      </tr>
+      <tr class="detail">
+        <td colspan="6">
+          <div class="panel">
+            <div class="panel-head"><span class="savepill">Saves $1,180 a month</span><span class="conf">Medium confidence</span></div>
+            <p class="finding">NAT gateway charges per gigabyte processed. Flow logs show 61% of the traffic is application pods reaching Azure Storage and Key Vault - traffic that never needed to leave the virtual network and is only routed through NAT because no private endpoints exist.</p>
+            <div class="cols">
+              <div class="col"><div class="codewrap"><div class="codelabel">terraform/network.tf (current)</div><pre class="code"><code>resource "azurerm_subnet" "apps" {
+  name                 = "snet-apps"
+  address_prefixes     = ["10.20.4.0/22"]
+  # No service endpoints, no private endpoints.
+  # Storage and Key Vault traffic exits via NAT and is billed per GB.
+}</code></pre></div></div>
+              <div class="col"><div class="codewrap"><div class="codelabel">Keep internal traffic inside the network</div><pre class="code"><code>resource "azurerm_private_endpoint" "storage" {
+  name                = "pe-datalake"
+  subnet_id           = azurerm_subnet.apps.id
+  private_service_connection {
+    name                           = "psc-datalake"
+    private_connection_resource_id = azurerm_storage_account.datalake.id
+    subresource_names              = ["blob"]
+    is_manual_connection           = false
+  }
+}
+
+resource "azurerm_private_endpoint" "kv" {
+  name                = "pe-keyvault"
+  subnet_id           = azurerm_subnet.apps.id
+  private_service_connection {
+    name                           = "psc-kv"
+    private_connection_resource_id = azurerm_key_vault.main.id
+    subresource_names              = ["vault"]
+    is_manual_connection           = false
+  }
+}</code></pre></div></div>
+            </div>
+            <div class="cols">
+              <div class="col">
+                <h4>How the number is worked out</h4>
+                <ul class="maths"><li>38 TB processed at $0.045/GB = $1,752 of the $4,220 (rest is hourly gateway charge)</li><li>61% of flows are storage and vault bound = 23.2 TB</li><li>23,756 GB x $0.045 = $1,069 removed from NAT</li><li>Private endpoints cost $0.01/hour each: 2 x 730 x $0.01 = $15</li><li>Plus reduced egress on the storage side: about $126</li><li>Net $1,180</li></ul>
+              </div>
+              <div class="col">
+                <h4>What could go wrong</h4>
+                <p class="risk">Private endpoints change DNS resolution inside the VNet. Needs a private DNS zone and a short maintenance window, or name resolution breaks for those services.</p>
+                <h4>Effort</h4>
+                <p class="risk">Half a day including DNS. Requires a change window.</p>
+              </div>
+            </div>
+          </div>
+        </td>
+      </tr>
+      <tr class="row">
+        <td class="res"><span class="tw">&#9656;</span>gcs-backup-archive<em>Cloud Storage, archive class, 780 TB</em></td>
+        <td class="opt"><span class="cloud">GCP</span></td>
+        <td class="opt">Data Platform</td>
+        <td class="num">$3,710</td>
+        <td class="num down">−1.4%</td>
+        <td class="num save">&mdash;</td>
+      </tr>
+      <tr class="detail">
+        <td colspan="6">
+          <div class="panel">
+            <div class="panel-head"><span class="savepill zero">No saving identified</span><span class="conf">High confidence</span></div>
+            <p class="finding">Nothing to do here, and that is worth stating. The bucket is already on the archive class, has a lifecycle policy, and retention is set by a compliance requirement rather than by choice. Listing it with a zero keeps the analysis honest.</p>
+            <div class="cols">
+              <div class="col"><div class="codewrap"><div class="codelabel">Lifecycle policy (already correct)</div><pre class="code"><code>{
+  "lifecycle": {
+    "rule": [
+      {
+        "action": { "type": "SetStorageClass", "storageClass": "ARCHIVE" },
+        "condition": { "age": 30 }
+      },
+      {
+        "action": { "type": "Delete" },
+        "condition": { "age": 2555 }
+      }
+    ]
+  }
+}</code></pre></div></div>
+              <div class="col"><p class="nochange">No change proposed.</p></div>
+            </div>
+            <div class="cols">
+              <div class="col">
+                <h4>How the number is worked out</h4>
+                <ul class="maths"><li>780 TB at archive class $0.0012/GB = $3,710</li><li>The next class down does not exist</li><li>Seven-year retention is a regulatory requirement, not a default</li></ul>
+              </div>
+              <div class="col">
+                <h4>What could go wrong</h4>
+                <p class="risk">None. No change proposed.</p>
+                <h4>Effort</h4>
+                <p class="risk">None.</p>
+              </div>
+            </div>
+          </div>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+</section>
+
+<section>
+  <h2>Where the savings are</h2>
+  <p class="sub">9 of 10 resources have an identified saving. The other 1 are listed with a dash, which is deliberate: a report that finds something wrong with everything is not being honest. Ordered by money on the table, not by how easy each one is.</p>
+  <table class="spine">
+    <tr>
+      <td class="nm">gke-ml-training-a100-pool<em>ML Platform &middot; high confidence</em></td>
+      <td class="barcell"><div class="bar" style="width:300px">&nbsp;</div></td>
+      <td class="cost">$8,270</td>
+      <td class="pct">48% of it</td>
+    </tr>
+    <tr>
+      <td class="nm">aks-prod-eastus-nodepool3<em>Core API &middot; high confidence</em></td>
+      <td class="barcell"><div class="bar" style="width:201px">&nbsp;</div></td>
+      <td class="cost">$5,550</td>
+      <td class="pct">28% of it</td>
+    </tr>
+    <tr>
+      <td class="nm">vm-scaleset-batch-nonprod<em>Developer Experience &middot; high confidence</em></td>
+      <td class="barcell"><div class="bar" style="width:138px">&nbsp;</div></td>
+      <td class="cost">$3,800</td>
+      <td class="pct">64% of it</td>
+    </tr>
+    <tr>
+      <td class="nm">sql-mi-billing-prod<em>Billing &amp; Payments &middot; high confidence</em></td>
+      <td class="barcell"><div class="bar" style="width:113px">&nbsp;</div></td>
+      <td class="cost">$3,110</td>
+      <td class="pct">26% of it</td>
+    </tr>
+    <tr>
+      <td class="nm">st-datalake-raw-prod<em>Data Platform &middot; high confidence</em></td>
+      <td class="barcell"><div class="bar" style="width:87px">&nbsp;</div></td>
+      <td class="cost">$2,410</td>
+      <td class="pct">35% of it</td>
+    </tr>
+    <tr>
+      <td class="nm">bq-analytics-warehouse<em>Data Platform &middot; high confidence</em></td>
+      <td class="barcell"><div class="bar" style="width:79px">&nbsp;</div></td>
+      <td class="cost">$2,190</td>
+      <td class="pct">30% of it</td>
+    </tr>
+    <tr>
+      <td class="nm">vm-scaleset-api-prod<em>Core API &middot; medium confidence</em></td>
+      <td class="barcell"><div class="bar" style="width:68px">&nbsp;</div></td>
+      <td class="cost">$1,880</td>
+      <td class="pct">14% of it</td>
+    </tr>
+    <tr>
+      <td class="nm">openai-embeddings-prod<em>ML Platform &middot; medium confidence</em></td>
+      <td class="barcell"><div class="bar" style="width:47px">&nbsp;</div></td>
+      <td class="cost">$1,300</td>
+      <td class="pct">20% of it</td>
+    </tr>
+    <tr>
+      <td class="nm">natgw-hub-prod-eastus<em>Core API &middot; medium confidence</em></td>
+      <td class="barcell"><div class="bar" style="width:43px">&nbsp;</div></td>
+      <td class="cost">$1,180</td>
+      <td class="pct">28% of it</td>
+    </tr>
+  </table>
+  <p class="attrib-note">Total identified: $29,690 a month, 20.0% of the invoice,
+  $356,280 over a year if the changes hold.</p>
+</section>
+
+<footer>
+  Generated 23 August 2026 at 04:24 by generate_report.py &middot; All team names, resource names, figures and
+  configurations are fictional<br>
+  Every figure on this page is derived from the billing file; nothing is hard-coded in the template
+</footer>
+
+</div>
+<script>
+(function () {
+  var rows = document.querySelectorAll('tr.row');
+  for (var i = 0; i < rows.length; i++) {
+    (function (row) {
+      row.addEventListener('click', function () {
+        var panel = row.nextElementSibling;
+        if (!panel || panel.className.indexOf('detail') === -1) { return; }
+        var isOpen = panel.className.indexOf('open') !== -1;
+        panel.className = isOpen ? 'detail' : 'detail open';
+        row.className = isOpen ? row.className.replace(' open', '')
+                               : row.className + ' open';
+      });
+    })(rows[i]);
+  }
+})();
+</script>
+</body>
+</html>
